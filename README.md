@@ -12,3 +12,16 @@ Update as of 20/10/2024: </br>
 Archived all old code under three-body-archive </br>
 Improved numerical integration performance using scipy.integrate </br>
 Used manim (which is the coolest library ever) to animate the code (sample mp4 is found under media) </br>
+
+</br>
+
+As of 21/10/2024:  </br>
+</br>
+Added functionality to render in both OpenGL and Cairo </br>
+Used 3D rendering to show a 3D simulation of the problem along with camera frame movement</br>
+
+</br>
+Notes: </br>
+OpenGL rendering uses GPU and is (much) faster than CPU rendering using Cairo, however a bit of functionality is lost using OpenGL as there are less methods available to some classes currently. </br>
+To change between Cairo and OpenGL, use the flag on line 110 of threebody2.py </br>
+

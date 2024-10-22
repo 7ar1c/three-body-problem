@@ -46,12 +46,12 @@ G = 1 ##G = 1 for convenience
 ## ICs can be edited at will
 
 m1, m2, m3 = 1, 1, 1
-x1, y1, z1 = 0, 0.05, 0
-x2, y2, z2 = 0, -0.05, 0
-x3, y3, z3 = 1, 0, 0
-vx1, vy1, vz1 = -np.sqrt(1/(0.2)), 0, 0
-vx2, vy2, vz2 = np.sqrt(1/(0.2)), 0, 0
-vx3, vy3, vz3 = 0, np.sqrt(3), 0
+x1, y1, z1 = 1, 0, 0
+x2, y2, z2 = -np.sqrt(3)/2, -0.5, 0
+x3, y3, z3 = np.sqrt(3)/2, 0.5, 0
+vx1, vy1, vz1 = 0, 0, 1
+vx2, vy2, vz2 = 1, 0, 0
+vx3, vy3, vz3 = 1, 0, 0
 
 initial_state = [x1, y1, z1, x2, y2, z2, x3, y3, z3, vx1, vy1, vz1, vx2, vy2, vz2, vx3, vy3, vz3] ## put ICs into a list
 masses = [m1, m2, m3] ## put masses into a list
@@ -88,15 +88,15 @@ planet3 = [solutions[:, 6] - com_x, solutions[:, 7] - com_y, solutions[:, 8] - c
 #plt.show()
 
 # The following code is a Manim implementation of the above code
-# ***All the code below is for the Manim implementation rendered using OpenGL***
+# ***All the code below is for the Manim implementation rendered using Cairo/OpenGL***
 
 
-class ThreeBody(Scene): ## define a scene called ThreeBody
+class ThreeBody(ThreeDScene): ## define a scene called ThreeBody
 
     def construct(self): ## define the construct method
 
         ## Create 3D axes
-
+        config.output_file = "switch_and_launch" ## set the output file name
         axes = ThreeDAxes( 
             x_range=[-30, 30],
             y_range=[-30, 30],
@@ -106,29 +106,40 @@ class ThreeBody(Scene): ## define a scene called ThreeBody
             z_length=10,
         )
 
+    
+        use_opengl = False  # Set to False to use Cairo instead of OpenGL
 
-        ## convert coordinates to numpy arrays and transpose for compatibility with OpenGLVMobject
-
+        # Convert coordinates to numpy arrays and transpose for compatibility with OpenGLVMobject
         planet1_points = np.array(planet1).T
         planet2_points = np.array(planet2).T
         planet3_points = np.array(planet3).T
 
-        ## create an OpenGLVGroup and OpenGLVMobjects for each planet
-        
-        planets = OpenGLVGroup()
-        planet1_vmobject = OpenGLVMobject(make_smooth_after_applying_functions=True).set_points_as_corners(axes.point_to_coords(planet1_points))
-        planet2_vmobject = OpenGLVMobject().set_points_as_corners(axes.point_to_coords(planet2_points))
-        planet3_vmobject = OpenGLVMobject().set_points_as_corners(axes.point_to_coords(planet3_points))
-        
-        ## set colors for each planet
+        # Create VMobject and VGroup classes based on the rendering engine
+        if use_opengl:
+            class VGroup(OpenGLVGroup):
+                pass
 
+            VMobjectClass = OpenGLVMobject
+        else:
+            class VGroup(VMobject):
+                pass
+
+            VMobjectClass = VMobject
+
+        # Create an instance of VGroup
+        planets = VGroup()
+
+        # Create VMobjects for each planet
+        planet1_vmobject = VMobjectClass(make_smooth_after_applying_functions=True).set_points_as_corners(axes.point_to_coords(planet1_points))
+        planet2_vmobject = VMobjectClass().set_points_as_corners(axes.point_to_coords(planet2_points))
+        planet3_vmobject = VMobjectClass().set_points_as_corners(axes.point_to_coords(planet3_points))
+
+        # Set colors for each planet
         planet1_vmobject.set_color(RED)
         planet2_vmobject.set_color(GREEN)
         planet3_vmobject.set_color(BLUE)
 
-        ## add planets to the OpenGLVGroup
-
-
+        # Add planets to the VGroup
         planets.add(planet1_vmobject)
         planets.add(planet2_vmobject)
         planets.add(planet3_vmobject)
@@ -159,17 +170,32 @@ class ThreeBody(Scene): ## define a scene called ThreeBody
         planets.set_opacity(0) ## set the opacity of the line to 0 so tails can dissapear, 
             #this is purely aesthetic and can be removed if desired
 
+    
+
         self.add(dots) ## add dots to the scene
         self.add(tail1, tail2, tail3) ## add tails to the scene
         self.add(axes) ## add axes to the scene
-        self.play(*(Create(curve, run_time=15) ## play the scene with a runtime of 15 seconds
-        for curve in planets), rate_functions=linear)
-        self.interactive_embed() ## for rendering in openGL, so we can interact with the scene
 
-        ## to render the scene, run the following command in the terminal:
+       # self.set_camera_orientation(phi=60 * DEGREES, theta=45 * DEGREES)
+        self.begin_ambient_camera_rotation(rate=0.2) ## begin camera rotation
+        self.begin_ambient_camera_rotation(rate=0.2, about="phi")
+
+        self.play(*(Create(curve, run_time=15) ## play the scene with a runtime of 15 seconds
+        for curve in planets),  
+        rate_functions=linear)
+
+        self.interactive_embed() ## for rendering in OpenGL, so we can interact with the scene
+
+        ## If using OpenGL to render the scene, run the following command in the terminal:
         ## enable_gui is used to allow for interaction with the scene, and opens an interactive IPython shell
         ## manim threebody2.py -p --renderer=opengl --enable_gui
 
+        ## If rendering using Cairo, run the following command in the terminal:
+        ## manim -qh threebody2.py ThreeBody
+
+        ## the -qh flag is used to render the scene in high quality (1080p60), and can be replaced by low/medium quality using -ql or -qm
+
+
 
         ## setting a VSCode task in tasks.json allows for the following command to be run in the terminal using Ctrl+Shift+B
-        ## this allows for easy (and effienct) rendering of the scene
+        ## this allows for easy (and efficient) rendering of the scene
